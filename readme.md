@@ -9,7 +9,7 @@
 
 #Approach
     - As per the Assignment Brief, following is what I considered as essential parts for the project
-        - A Sign Up & Login process
+    - A Sign Up & Login process
     - The sign up process would sign up a user with their email address, aling with a Username & Password and allow Login using the Username & Password
     - A Map with locations of Notes added by users, seems to be the main function of the app. Hence, it was made the Home Screen of the App, once a user is Logged In.
     - The Map View shows all the notes that have been saved by different users of the app as location pins.
