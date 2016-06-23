@@ -1,0 +1,53 @@
+/* 
+  Localizable.strings
+  LandmarkRemark
+
+  Created by Gagandeep Singh on 21/6/16.
+  Copyright © 2016 Gagandeep Singh. All rights reserved.
+*/
+
+//Actions
+LOG_IN      = "Log In";
+SIGN_UP     = "Sign Up";
+LOG_OUT     = "Log Out";
+NEXT        = "Next";
+CANCEL      = "Cancel";
+SETTINGS    = "Settings";
+EDIT        = "Edit";
+
+
+//User Details
+EMAIL_ADDRESS               = "Email Address";
+USERNAME                    = "Username";
+PASSWORD                    = "Password";
+SELECT_USERNAME             = "Select Username";
+SELECT_PASSWORD             = "Select Password";
+ACCOUNT_DETAILS             = "Account Details";
+NOTES                       = "Notes";
+
+//Statements
+INVALID_EMAIL               = "Invalid Email Address!";
+INVALID_USERNAME            = "Invalid Username!";
+INVALID_PASSWORD            = "Invalid Password!";
+
+ARE_YOU_SURE                = "Are you sure?";
+NOTE_SAVED                  = "Note saved successfully";
+NOTE_NOT_SAVED              = "Note could not be saved";
+
+SUCCESSFUL_SIGNUP           = "Signed Up Successfully";
+FAILED_SIGNUP               = "Sign Up Failed. Try Again!";
+FAILED_LOGIN                = "Login Failed. Try again!";
+IS_NOT_AVAILABLE            = "is not available";
+ANOTHER_ACCOUNT_IS_USING    = "Another account is using";
+ENTER_VALID_USERNAME        = "Enter a valid Username";
+ENTER_VALID_PASSWORD        = "Enter a valid Password";
+NO_ACCOUNT_QUESTION         = "Don't have an account?";
+USERNAME_TOO_SHORT          = "Username must have at least 6 characters";
+PASSWORD_TOO_SHORT          = "Password must have at least 8 characters";
+USERNAME_DOES_NOT_EXIST     = "Username does not exist";
+INCORRECT_PASSWORD_FOR      = "Incorrect password for";
+
+LOCATION_ACCESS_TITLE       = "Allow Location Access";
+LOCATION_ACCESS_MESSAGE     = "You need to allow Landmark Remark to access your current location to add a note.";
+LOCATION_RESTRICTED_TITLE   = "Locattion Access Restricted";
+LOCATION_RESTRICTED_MESSAGE = "A note cannot be added without access to your Current Location.";

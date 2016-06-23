@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Parse
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,7 +16,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
-        // Override point for customization after application launch.
+        
+        //Initialize Parse
+        Parse.setApplicationId("ggNBeEVhMswNTG6Xzg9foC1lNYcHO79ZE5cndcuJ", clientKey: "4BqtJqSR65GYOLQLv8oKjeZqfXRN65FP7jX36DWN")
+        
+        //If current user is logged in, send to Home View
+        if let user = PFUser.currentUser() {
+            CurrentUser = UserObject(withParseUser: user)
+            RootVC.pushViewController(MainTBC, animated: false)
+        }
+        
         return true
     }
 

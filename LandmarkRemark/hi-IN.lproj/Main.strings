@@ -1,0 +1,12 @@
+
+/* Class = "UIButton"; normalTitle = "Sign Up"; ObjectID = "Ugh-IV-GEd"; */
+"Ugh-IV-GEd.normalTitle" = "Sign Up";
+
+/* Class = "UILabel"; text = "Don't have an account?"; ObjectID = "afS-2X-mBb"; */
+"afS-2X-mBb.text" = "Don't have an account?";
+
+/* Class = "UIButton"; normalTitle = "Log In"; ObjectID = "f35-4j-MFZ"; */
+"f35-4j-MFZ.normalTitle" = "Log In";
+
+/* Class = "UILabel"; text = "Landmark Remark"; ObjectID = "ha7-Fg-IL4"; */
+"ha7-Fg-IL4.text" = "Landmark Remark";
