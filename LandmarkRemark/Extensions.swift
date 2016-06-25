@@ -37,6 +37,7 @@ extension UIColor {
     }
 }
 
+//Background Gradient
 func purpleGradient() -> CAGradientLayer {
     let purpleGradient: CAGradientLayer = CAGradientLayer()
     purpleGradient.colors = [UIColor.gradientPurpleOne().CGColor, UIColor.gradientPurpleTwo().CGColor]
@@ -63,13 +64,13 @@ extension String {
 extension NSDate {
     func longFormat() -> String {
         let dateFormatter = NSDateFormatter()
-        dateFormatter.dateFormat = "dd MMMM, YYYY hh:mm a" //format style. Browse online to get a format that fits your needs.
+        dateFormatter.dateFormat = "dd MMMM, YYYY hh:mm a"
         return dateFormatter.stringFromDate(self)
     }
     
     func dateOnlyFormat() -> String {
         let dateFormatter = NSDateFormatter()
-        dateFormatter.dateFormat = "dd MMMM, YYYY" //format style. Browse online to get a format that fits your needs.
+        dateFormatter.dateFormat = "dd MMMM, YYYY"
         return dateFormatter.stringFromDate(self)
     }
 }

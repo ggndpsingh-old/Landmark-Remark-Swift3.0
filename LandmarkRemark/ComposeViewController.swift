@@ -184,10 +184,19 @@ class ComposeViewController: UIViewController, UITextViewDelegate {
     func showProcessing() {
         //Called when save button is tapped
         view.endEditing(true)
+        
+        //Show progress
         spinner.startAnimating()
+        
+        //Cannot dismiss view while processing
         closeButton.hidden = true
+        
+        //Disable save button
         saveButton.enabled = false
         saveButton.alpha = 0.5
+        
+        //Disable text view to disallow further changes
+        textView.editable = false
     }
     
     func hideProcessing() {
@@ -196,6 +205,7 @@ class ComposeViewController: UIViewController, UITextViewDelegate {
         closeButton.hidden = false
         saveButton.enabled = true
         saveButton.alpha = 1
+        textView.editable = true
     }
     
     @IBAction func dismiss() {

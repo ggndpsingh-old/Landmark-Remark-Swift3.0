@@ -9,6 +9,7 @@
 import UIKit
 import Parse
 import CoreLocation
+import MapKit
 
 //Method to check availablity in User class.
 //Common usage: Email & Username
@@ -41,4 +42,18 @@ func isValidEmail(candidate: String) -> Bool {
 
 func convertMetersToKilometers(distance: CLLocationDistance) -> CLLocationDistance {
     return distance / 1000
+}
+
+
+
+//Chech if an annotation exsits at given coordinates
+func annotationExists(atCoordinates coordinates: CLLocationCoordinate2D,  inMapView mapView: MKMapView) -> Bool {
+    
+    for annotation in mapView.annotations {
+        if annotation.coordinate.latitude == coordinates.latitude && annotation.coordinate.longitude == coordinates.longitude {
+            return true
+        }
+    }
+    
+    return false
 }

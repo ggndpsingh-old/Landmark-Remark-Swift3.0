@@ -32,17 +32,34 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
     @IBOutlet weak var currentLocationButton: UIButton!
     
     //MARK:- VARIABLES
-    var locationManager: CLLocationManager!
-    var location : CLLocation!
-    var lastLocation: CLLocation!
-    var locality: String!
     
-    var noteObjects: [PFObject]!
-    var notes: [NoteObject]!
+    //init location manager
+    var locationManager: CLLocationManager!
+    
+    //user current locations
+    var currentLocation : CLLocation!
+    
+    //save last location whenever map region changes
+    var lastLocation: CLLocation!
+    
+    //Location String
+    var locationString: String!
+    
+    //Array for notes
+    var parseNotes: [PFObject]!
+    
+    //Note Objects
+    var noteObjects: [NoteObject]!
+    
+    //Selected Note
     var selectedNote: NoteObject?
     
+    //tap to dismiss keyboard
     var tap: UITapGestureRecognizer!
 
+    
+    
+    //MARK:- METHODS
     //MARK:- METHODS
     func getLocationAuthorization() {
         let status: CLAuthorizationStatus = CLLocationManager.authorizationStatus()
@@ -50,7 +67,7 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         switch status {
         case .NotDetermined:
             locationManager.requestWhenInUseAuthorization()
-        
+            
         case .Restricted:
             showRestrictedAuthorizationAlert()
             
@@ -63,6 +80,7 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         
     }
     
+    //Show alert if user has denied Location Access
     func showDeniedAuthorizationAlert() {
         let title = NSLocalizedString("LOCATION_ACCESS_TITLE", comment: "Location access title")
         let message = NSLocalizedString("LOCATION_ACCESS_MESSAGE", comment: "Location access message")
@@ -81,6 +99,7 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         self.presentViewController(alert, animated: true, completion: nil)
     }
     
+    //Show alert if user lcoation is restricted on device
     func showRestrictedAuthorizationAlert() {
         let title = NSLocalizedString("LOCATION_RESTRICTED_TITLE", comment: "Location restricted title")
         let message = NSLocalizedString("LOCATION_RESTRICTED_MESSAGE", comment: "Location restricted message")
@@ -92,6 +111,10 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         
         self.presentViewController(alert, animated: true, completion: nil)
     }
+    
+    
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -137,27 +160,39 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         editButton.setTitle(NSLocalizedString("EDIT", comment: "Edit"), forState: .Normal)
     }
     
-    func locationManager(manager: CLLocationManager, didChangeAuthorizationStatus status: CLAuthorizationStatus) {
-        manager.startUpdatingLocation()
-    }
     
+    //Reload notes if required
     func reloadNotes() {
         fetchNotesInCurrentArea()
         goToCurrentLocation()
     }
     
+    
+    
     //MARK:- LOCATION MANAGER DELEGATE
+    func locationManager(manager: CLLocationManager, didChangeAuthorizationStatus status: CLAuthorizationStatus) {
+        manager.startUpdatingLocation()
+    }
+    
+    
     func locationManager(manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
-        self.location = locations[0]
-        self.lastLocation = locations[0]
+        //Set current Location and last Location on location change
+        currentLocation = locations[0]
+        lastLocation = locations[0]
         
+        //get location information
         let geoCoder = CLGeocoder()
         geoCoder.reverseGeocodeLocation(manager.location!) { (placemarks, error) -> Void in
+            
             if error == nil {
+            
                 if placemarks!.count > 0 {
+                    
+                    //Get address string for location
                     self.getLocationInfo(placemarks![0] as CLPlacemark)
                 }
+            
             } else {
                 print(error)
             }
@@ -167,10 +202,10 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
     
     func getLocationInfo(placemark : CLPlacemark) {
         
-        //Get location details
+        //Create address string for location
         if let addressDictionary: NSDictionary = placemark.addressDictionary {
             let strings = addressDictionary["FormattedAddressLines"]
-            self.locality = strings!.componentsJoinedByString(" ")
+            locationString = strings!.componentsJoinedByString(" ")
             
         } else {
             
@@ -180,10 +215,14 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
             let country     = placemark.country     == nil ? "" : placemark.country!
             
             let string = "\(subLocality) \(locality) \(postcode) \(country)"
-            self.locality = string
+            locationString = string
         }
         
     }
+    
+    
+    
+    
     
     
     //MARK:- MAP VIEW DELEGATE
@@ -231,10 +270,6 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         }
     }
     
-    @IBAction func deselectAnnotationView() {
-        mapView.deselectAnnotation(mapView.selectedAnnotations[0], animated: true)
-    }
-    
     func getMapViewRadius() -> CLLocationDistance {
         
         //Calculate the area of map on screen
@@ -253,6 +288,10 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         
         //Return distance
         return radiusInKilometers
+    }
+    
+    @IBAction func deselectAnnotationView() {
+        mapView.deselectAnnotation(mapView.selectedAnnotations[0], animated: true)
     }
     
     @IBAction func goToCurrentLocation() {
@@ -293,10 +332,13 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
             composeVc.location      = selectedNote!.location
             
         default:
-            composeVc.locality      = self.locality
-            composeVc.location      = self.location
+            composeVc.locality      = self.locationString
+            composeVc.location      = self.currentLocation
         }
     }
+    
+    
+    
     
     
     //MARK:- TEXT FIELD DELEGATE
@@ -319,17 +361,30 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
     }
     
     
+    
+    
+    
     //MARK:- FETCHING NEW NOTES
     func fetchNotesInCurrentArea() {
+        
+        //Show loading indicator
         spinner.startAnimating()
         clearButton.hidden = true
         
+        //Get search input
         let searchText = self.searchInput.text!
+        
+        //Create regex to match seatch input with Search String
         let regex : String = "(?i:\(searchText))"
         
+        //Create parse geopoiint for location at center of map
         let geoPoint = PFGeoPoint(latitude: mapView.centerCoordinate.latitude, longitude: mapView.centerCoordinate.longitude)
-        noteObjects = [PFObject]()
         
+        
+        //Initialize Parse Notes Array
+        parseNotes = [PFObject]()
+        
+        //Query for notes in map region
         let query = PFQuery(className: "Note")
         
         //If search input is empty, this statement will return all the results
@@ -338,15 +393,19 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         //Search within the visible area only
         query.whereKey("location", nearGeoPoint: geoPoint, withinKilometers: getMapViewRadius())
         
-        
+        //Inlude note user detail
         query.includeKey("user")
         query.findObjectsInBackgroundWithBlock { (objects, error) in
             if let notes = objects {
-                self.noteObjects = notes
+                //If notes found, set Parse Notes array and add annotaions to the map
+                self.parseNotes = notes
                 self.addNoteAnnotations()
             }
+            
+            //Hide loading spinner
             self.spinner.stopAnimating()
             
+            //If search input is not empty, show clear button
             if searchText != "" {
                 //If searching, show clear button
                 self.clearButton.hidden = false
@@ -354,16 +413,38 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         }
     }
     
+    
+    
+    
+    
+    //MARK:- ADD ANNOTATIONS
     func addNoteAnnotations() {
-        notes = [NoteObject]()
+        
+        //Initialize Note Objects array
+        noteObjects = [NoteObject]()
+        
+        //Create an empty array to store found annotations
         var annotations = [NoteAnnotation]()
         
-        for note in noteObjects {
+        //Go through each note
+        for note in parseNotes {
+            //Conver note to Note Object
             let noteObject = NoteObject(withParseObject: note)
             
-            if self.notes.indexOf({$0.objectId == noteObject.objectId}) == nil {
-                self.notes.append(noteObject)
-                annotations.append(createNoteAnnotation(noteObject))
+            //Check if note already in the Note Objects array to avoild duplicates
+            if noteObjects.indexOf({$0.objectId == noteObject.objectId}) == nil {
+                
+                //Add Note Object to array
+                noteObjects.append(noteObject)
+                
+                //Check if an annotation already exsits at note location
+                let noteCoordinates = noteObject.location.coordinate
+                if !annotationExists(atCoordinates: noteCoordinates, inMapView: mapView) {
+                    
+                    //If no annotation at this location, add annotaion to array
+                    let annotation = createNoteAnnotation(noteObject)
+                    annotations.append(annotation)
+                }
             }
         }
         
@@ -371,19 +452,27 @@ class HomeViewController: UIViewController, CLLocationManagerDelegate, MKMapView
         if searchInput.text != "" {
             self.mapView.removeAnnotations(self.mapView.annotations)
         }
+        
         mapView.addAnnotations(annotations)
     }
     
+    //Create an annotaion from Note Object
     func createNoteAnnotation(note: NoteObject) -> NoteAnnotation {
         
+        //Create new Note Annotation
         let annotation = NoteAnnotation()
+        
+        //Set annnotation properties
         annotation.coordinate = note.location.coordinate
         annotation.title = note.user.username
         annotation.subtitle = note.locationString
         annotation.note = note
+        
+        //Return annotation
         return annotation
     }
     
+    //Clear search filed
     @IBAction func clearSearchField() {
         searchInput.text = ""
         dismissKeyboard()

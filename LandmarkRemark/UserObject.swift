@@ -12,6 +12,8 @@ import Parse
 
 class UserObject : NSObject, NSCoding {
     
+    //Set user properties
+    
     var parseUser   : PFUser!
     var objectId    : String!
     var username    : String!
@@ -23,14 +25,19 @@ class UserObject : NSObject, NSCoding {
 
     var password    : String?
     
+    
+    //Empty Iint
     override init() {
         
     }
     
+    
     //Initialize from Parse User
     init(withParseUser pfUser: PFUser) {
         
+        //Set user values
         self.parseUser  = pfUser
+        
         self.objectId   = pfUser.valueForKey("objectId") as! String
         self.username   = pfUser.valueForKey("username") as! String
         self.email      = pfUser.valueForKey("email") as! String
@@ -40,13 +47,20 @@ class UserObject : NSObject, NSCoding {
         self.updatedAt = pfUser.valueForKey("updatedAt") as! NSDate
     }
     
+    
+    //Sign Up new user
     func signUpAsNewUser(completion: ((success: Bool) -> Void)? ) {
+        
+        //Create new Parse user
         parseUser = PFUser()
+        
+        //Sset user properties
         parseUser.setValue(self.username, forKey: "username")
         parseUser.setValue(self.email, forKey: "email")
         parseUser.setValue(self.password!, forKey: "password")
         parseUser.setValue(0, forKey: "notesCount")
         
+        //Sign Up User
         parseUser.signUpInBackgroundWithBlock { (success, error) in
             if success {
                 completion!(success: true)
@@ -59,11 +73,17 @@ class UserObject : NSObject, NSCoding {
         
     }
     
+    
+    //Update varialbe properties
     func updateParseUser() {
         parseUser.setValue(self.notesCount, forKey: "notesCount")
         parseUser.saveInBackground()
     }
     
+    
+    
+    
+    //Required NSObject initializers
     
     //Endcoding & Decoding to save User Object locally
     required init(coder aDecoder: NSCoder) {
