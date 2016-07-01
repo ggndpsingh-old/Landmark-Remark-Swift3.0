@@ -2,7 +2,8 @@
 #by Gagandeep Singh
 
 #Installation
-    - Open the LandmarkRemark.xcworkspace in Xcode 7.3.1 or later.
+    - Language: Swift 3.0
+    - Open the LandmarkRemark.xcworkspace in Xcode 8.0 Beta or later.
     - Run the app in Simulator or a device.
     - Parse has been used as backend for this project.
 
@@ -40,6 +41,14 @@
     - If the user decides to allow access, they can tap the Settings button on the alert and they'll be taken to the app settings, allows location access and then come back and write their note.
     - If the user decides not allow access once again, they cannot write a note.
 
+#Changes Made
+    - Based in MVC Design Pattern.
+    - Grouping of notes at same address.
+    - Option to see multiple noes at same location in a Table View.
+    - No duplicate annotations at same location. 
+    - Option to Edit/Delete Notes.
+    - Option to Like Notes.
+
 #Issues/Limitations
     - The projects covers all the requirements given in the Assignment Brief.
     - It does go slighly beyond of what was asked but there still are a few things that can be added to make this a proper app.
@@ -57,6 +66,7 @@
     - ~3 hours: UI & UX Design: 
     - ~2 hours:  Miscellaneous
     - ~30 minutes: Localization
+    - ~2 hours: Debugging
     
 
 
