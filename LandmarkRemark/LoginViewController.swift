@@ -9,7 +9,7 @@
 import UIKit
 import Parse
 
-class LoginViewController: UIViewController, UITextFieldDelegate {
+class LoginViewController: UIViewController, LoginViewModelDelegate {
     
     //MARK:- OUTLETS
 
@@ -22,16 +22,21 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var loginSpinner: UIActivityIndicatorView!
     
     //MARK:- VARIABLES
+    
+    var viewModel: LoginViewModel!
+    
     var tap: UITapGestureRecognizer!
     
-    //MARK:- METHODS
-    override func preferredStatusBarStyle() -> UIStatusBarStyle {
-        return UIStatusBarStyle.LightContent
-    }
-    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller life cycle methods
+    //------------------------------------------------------------------------------------------------
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.navigationController?.navigationBarHidden = true
+        self.navigationController?.isNavigationBarHidden = true
+        
+        //initialize View Model
+        viewModel = LoginViewModel(delegate: self)
+        
         
         //Start with Log In button disabled
         loginButton.disabled()
@@ -48,91 +53,93 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
         populizeStrings()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         
-        //Add keyboard notification observer
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillHide(_:)), name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillChange(_:)), name: UIKeyboardWillChangeFrameNotification, object: nil)
+        //Set Self as Active View Controller
+        ActiveViewController = self
         
-        usernameInput.addTarget(self, action: #selector(textFieldDidChange(_:)), forControlEvents: .EditingChanged)
-        passwordInput.addTarget(self, action: #selector(textFieldDidChange(_:)), forControlEvents: .EditingChanged)
+        //Add keyboard notification observer
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillHide(notification:)), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillChange(notification:)), name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
+        
+        usernameInput.addTarget(self, action: #selector(textFieldDidChange(textField: )), for: UIControlEvents.editingChanged)
+        passwordInput.addTarget(self, action: #selector(textFieldDidChange(textField: )), for: UIControlEvents.editingChanged)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        clearView()
+        
+        //Remove keyboard notification observers
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
+        
+    }
+    
+    
+    
+    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller styling methods
+    //------------------------------------------------------------------------------------------------
+    
+    override func preferredStatusBarStyle() -> UIStatusBarStyle {
+        return UIStatusBarStyle.lightContent
     }
     
     func setViewBackground() {
-        self.view.layer.insertSublayer(purpleGradient(), atIndex: 0)
+        self.view.layer.insertSublayer(purpleGradient(), at: 0)
     }
+    
     
     func populizeStrings() {
         //Populize localised Strings
-        loginButton.setTitle(NSLocalizedString("LOG_IN", comment: "Log In"), forState: .Normal)
+        loginButton.setTitle(NSLocalizedString("LOG_IN", comment: "Log In"), for: UIControlState.application)
         noAccountLabel.text = NSLocalizedString("NO_ACCOUNT_QUESTION", comment: "No Account")
-        signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Sign Up"), forState: .Normal)
+        signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Sign Up"), for: UIControlState.application)
         usernameInput.placeholder = NSLocalizedString("USERNAME", comment: "Username")
         passwordInput.placeholder = NSLocalizedString("PASSWORD", comment: "Password")
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
-    }
     
+    
+    
+    
+    // -------------------------------
+    // MARK :- user Actions on the UI
+    // -------------------------------
     @IBAction func login(sender: LargeWhiteButton) {
         
-        let username = usernameInput.text!
-        let password = passwordInput.text!
+        viewModel.username = usernameInput.text!
+        viewModel.password = passwordInput.text!
         
-        if username.characters.count < MIN_USERNAME_LENGTH {
-            showMessageView(NSLocalizedString("ENTER_VALID_USERNAME", comment: "Enter valid username"), valid: false, completion: nil)
-            usernameInput.invalid()
-            usernameInput.becomeFirstResponder()
-        
-        } else if password.characters.count < MIN_PASSWORD_LENGTH {
-            showMessageView(NSLocalizedString("ENTER_VALID_PASSWORD", comment: "Enter valid password"), valid: false, completion: nil)
-            passwordInput.invalid()
-            passwordInput.becomeFirstResponder()
-        
-        } else {
-            
-            //Check if username exists
-            showProcessing()
-            checkAvailabilityInUserClass(inField: "username", forValue: username, completion: { (available) in
-                if available {
-                    //Username does not exist
-                    showMessageView("\(NSLocalizedString("USERNAME_DOES_NOT_EXIST", comment: "Username doesn't exist")) '\(username)'", valid: false, completion: nil)
-                    self.hideProcessing()
-                
-                } else {
-                    //Username exists, continue login
-                    self.performLogin(withUsername: username, password: password)
-                }
-            })
-        }
+        viewModel.login()
     }
     
-    func performLogin(withUsername username: String, password: String) {
-        
-        PFUser.logInWithUsernameInBackground(username, password: password, block: { (user, error) -> Void in
-            
-            if let user = user {
-                CurrentUser = UserObject(withParseUser: user)
-                RootVC.pushViewController(MainTBC, animated: true)
-                updateParseInstallation()
-                
-            } else {
-                if error?.code == 101 {
-                    //Incorrect Password
-                    showMessageView("\(NSLocalizedString("INCORRECT_PASSWORD_FOR", comment: "Incorrect password for")) '\(username)'", valid: false, completion: nil)
-                    
-                } else {
-                    showMessageView(NSLocalizedString("FAILED_LOGIN", comment: "Login failed"), valid: false, completion: nil)
-                }
-            }
-            self.hideProcessing()
-        })
+    
+    
+    
+    // -------------------------------------------------------------------------------------------------------
+    // MARK :- LoginViewModelDelegate method implementation, called by the view-model to notify anything
+    // -------------------------------------------------------------------------------------------------------
+    
+    func loginSuccessful(withUser user: PFUser) {
+        CurrentUser = UserObject(withParseUser: user)
+        RootVC.pushViewController(MainTBC, animated: true)
+
     }
     
-    //MARK:- LOGIN PROCESSING STATES
+    func invalidUsername() {
+        usernameInput.invalid()
+        usernameInput.becomeFirstResponder()
+    }
+    
+    func invalidPassword() {
+        passwordInput.invalid()
+        passwordInput.becomeFirstResponder()
+    }
+    
     func showProcessing() {
         dismissKeyboard()
         
@@ -141,7 +148,7 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
         loginButton.disabled()
         
         //Hides Log In text and leaves the border intact for a better look
-        loginButton.setTitle("", forState: .Normal)
+        loginButton.setTitle("", for: UIControlState.application)
     }
     
     func hideProcessing() {
@@ -150,53 +157,70 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
         loginButton.enabled()
         
         //Re-populate Log In text
-        loginButton.setTitle(NSLocalizedString("LOG_IN", comment: "Log In"), forState: .Normal)
+        loginButton.setTitle(NSLocalizedString("LOG_IN", comment: "Log In"), for: UIControlState.application)
     }
+    
+    // ------------------------------------
+    // MARK :- Helper methods
+    // ------------------------------------
+    
     
     func clearView() {
         //Clear view on Log In
+        dismissKeyboard()
         usernameInput.text = ""
         passwordInput.text = ""
         loginButton.disabled()
     }
+}
+
     
-    //MARK:- TEXT FIELD DELEGATE
-    func textFieldDidBeginEditing(textField: UITextField) {
+
+
+// ------------------------------------
+// MARK :- UITextFieldDelegate Extension
+// ------------------------------------
+extension LoginViewController: UITextFieldDelegate {
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
         view.addGestureRecognizer(tap)
     }
     
-    func textFieldDidEndEditing(textField: UITextField) {
+    func textFieldDidEndEditing(_ textField: UITextField) {
         view.removeGestureRecognizer(tap)
     }
     
-    func textFieldDidChange(notification: NSNotification) {
+    func textFieldDidChange(textField: UITextField) {
         
         //If either of the inputs is emply, disable Login Button
         if usernameInput.text == "" || passwordInput.text == "" {
             loginButton.disabled()
-        
+            
         } else {
             loginButton.enabled()
         }
     }
     
-    func textFieldShouldReturn(textField: UITextField) -> Bool {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         switch textField {
         case usernameInput:
             passwordInput.becomeFirstResponder()
             
         default:
-            login(loginButton)
+            login(sender: loginButton)
         }
         return true
     }
     
+    
+    
+    
     //MARK:- KEYBOARD NOTIFICATIONS
     func keyboardWillChange(notification: NSNotification) {
-        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.CGRectValue() {
+        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue() {
             
             let keyboardOrigin = keyboardRect.origin.y
-            let buttonMaxY = CGRectGetMaxY(loginButton.frame)
+            let buttonMaxY = loginButton.frame.maxY
             
             // If keyboard overlaps the button
             if keyboardOrigin < buttonMaxY {
@@ -212,16 +236,5 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
     
     func dismissKeyboard() {
         view.endEditing(true)
-    }
-    
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        
-        clearView()
-        
-        //Remove keyboard notification observers
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillChangeFrameNotification, object: nil)
-        
     }
 }

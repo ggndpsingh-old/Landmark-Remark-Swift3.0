@@ -11,13 +11,16 @@ import UIKit
 
 var CurrentUser: UserObject?
 
-let appDelegate  = UIApplication.sharedApplication().delegate as! AppDelegate
+//Keep track of active view.
+var ActiveViewController: AnyObject?
+
+let appDelegate  = UIApplication.shared().delegate as! AppDelegate
 let RootVC : UINavigationController = appDelegate.window!.rootViewController as! UINavigationController
 let MainStoryboard = UIStoryboard(name: "Main", bundle: nil)
-let HomeVC  = MainStoryboard.instantiateViewControllerWithIdentifier("HomeViewController")
-let MainTBC = MainStoryboard.instantiateViewControllerWithIdentifier("MainTabBarController")
+let HomeVC  = MainStoryboard.instantiateViewController(withIdentifier: "HomeViewController")
+let MainTBC = MainStoryboard.instantiateViewController(withIdentifier: "MainTabBarController")
 
 
 //MARK:- Screen Specs
-let ScreenSize = UIScreen.mainScreen().bounds.size
-let ScreenScale = UIScreen.mainScreen().scale
+let ScreenSize = UIScreen.main().bounds.size
+let ScreenScale = UIScreen.main().scale

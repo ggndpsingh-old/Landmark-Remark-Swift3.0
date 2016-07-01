@@ -13,15 +13,15 @@ import UIKit
 func showMessageView(message: String, valid: Bool, completion: ((success: Bool) -> Void)? ) {
     
     //Use UIWindow to present it above the Status Bar
-    var window: UIWindow? = UIWindow(frame: CGRectMake(0, 0, ScreenSize.width, 20))
+    var window: UIWindow? = UIWindow(frame: CGRect(x: 0, y: 0, width: ScreenSize.width, height: 20))
     window!.windowLevel = UIWindowLevelStatusBar + 1
     
     //Message Label
-    let label = UILabel(frame: CGRectMake(0, -20, ScreenSize.width, 20))
+    let label = UILabel(frame: CGRect(x: 0, y: -20, width: ScreenSize.width, height: 20))
     label.backgroundColor = valid ? UIColor.validGreen() : UIColor.errorRed()
-    label.textColor = UIColor.whiteColor()
-    label.font = UIFont.boldSystemFontOfSize(11)
-    label.textAlignment = NSTextAlignment.Center
+    label.textColor = UIColor.white()
+    label.font = UIFont.boldSystemFont(ofSize: 11)
+    label.textAlignment = NSTextAlignment.center
     label.numberOfLines = 0
     label.text = message
     
@@ -29,13 +29,13 @@ func showMessageView(message: String, valid: Bool, completion: ((success: Bool) 
     window!.makeKeyAndVisible()
     
     //Show Message
-    UIView.animateWithDuration(0.2, delay: 0.0, options: .CurveEaseInOut, animations: {
+    UIView.animate(withDuration: 0.2, delay: 0.0, options: UIViewAnimationOptions.curveEaseIn, animations: {
         label.frame.origin.y = 0
         label.alpha = 1
         }, completion: nil)
     
     //Hide Message after desired time
-    UIView.animateWithDuration(0.2, delay: MESSAGE_DELAY, options: .CurveEaseInOut, animations: {
+    UIView.animate(withDuration: 0.2, delay: MESSAGE_DELAY, options: UIViewAnimationOptions.curveEaseIn, animations: {
         label.frame.origin.y = -20
         label.alpha = 0
     }) { (success) -> Void in

@@ -1,46 +1,52 @@
 //
-//  UserProfileViewController.swift
+//  NotesListViewController.swift
 //  LandmarkRemark
 //
-//  Created by Gagandeep Singh on 22/6/16.
+//  Created by Gagandeep Singh on 27/6/16.
 //  Copyright © 2016 Gagandeep Singh. All rights reserved.
 //
 
 import UIKit
-import Parse
+import MapKit
 
-class UserProfileViewController: UIViewController, UserProfileViewModelDelegate {
+class NotesListViewController: UIViewController {
     
-    //MARK:- OURTETS
-    @IBOutlet weak var usernameLabel: UILabel!
-    @IBOutlet weak var logoutButton: UIButton!
-    @IBOutlet weak var notesCount: UILabel!
-    @IBOutlet weak var notesLabel: UILabel!
+    
+    //MARK:- OUTLETS
+    @IBOutlet weak var mapView: MKMapView!
+    
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var addressLabel: UILabel!
+    @IBOutlet weak var notesAtLabel: UILabel!
     
     
     //MARK:- VARIABLES
     
-    var viewModel: UserProfileVewModel!
-    
-    var refreshControl: UIRefreshControl!
+    //Array to hold notes
+    var address: String!
     var notes: [NoteObject]!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        viewModel = UserProfileVewModel(delegate: self)
-
         //Set table view delegate and data source
         tableView.delegate   = self
         tableView.dataSource = self
         
-        //Add refresh control to table view
-        refreshControl = UIRefreshControl()
-        refreshControl.addTarget(self, action: #selector(fetchUserNotes), for: .valueChanged)
-        tableView.addSubview(refreshControl)
+        //Populise Strings
+        notesAtLabel.text = NSLocalizedString("NOTES_AT", comment: "Notes at") + ":"
         
-        fetchUserNotes()
+        //Remove extra padding on table top
+        tableView.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: 1))
+        
+        NotificationCenter.default().addObserver(self, selector: #selector(reloadTableView), name: "newNoteSaved", object: nil)
+        
+        let note = self.notes[0]
+        let annotaionLocation = note.location.coordinate
+        let span = MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        let region = MKCoordinateRegion(center: annotaionLocation, span: span)
+        mapView.setRegion(region, animated: true)
+
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -49,74 +55,39 @@ class UserProfileViewController: UIViewController, UserProfileViewModelDelegate 
         //Set Self as Active View Controller
         ActiveViewController = self
         
-        //Populize String
-        self.logoutButton.setTitle(NSLocalizedString("LOG_OUT", comment: "Log Out"), for: UIControlState.application)
-        self.notesLabel.text = NSLocalizedString("NOTES", comment: "Notes").lowercased()
-        
-        //Populize Labels
-        populizeLabels()
-    }
-    
-    func populizeLabels() {
-        
-        self.usernameLabel.text = CurrentUser!.username
-        self.notesCount.text = "\(CurrentUser!.notesCount!)"
-    }
-    
-    
-    //MARK:- FETCH NOTES
-    func fetchUserNotes() {
-        
-        //Initialize notes array
-        viewModel.fetchNotes(forUser: CurrentUser!) { (notes, error) in
-            if let notes = notes {
-                
-                self.notes = notes
-                self.tableView.reloadData()
-            }
-            
-            self.refreshControl.endRefreshing()
-        }
-    }
-    
-    @IBAction func logout() {
-        
-        let title = NSLocalizedString("ARE_YOU_SURE", comment: "Location access title")
-        
-        let alert = UIAlertController(title: title, message: "", preferredStyle: .alert)
-        
-        let cancelAction: UIAlertAction = UIAlertAction(title: NSLocalizedString("CANCEL", comment: "Cancel"), style: .cancel, handler: nil)
-        let logoutAction: UIAlertAction = UIAlertAction(title: NSLocalizedString("LOG_OUT", comment: "Log Out"), style: .destructive) { (action) in
-            
-            //Log Out Parse User
-            self.viewModel.logOut(completion: { (error) in
-                if error == nil {
-                    
-                    //Make Home View active
-                    self.tabBarController?.selectedIndex = 0
-                    
-                    //Go to log in screen
-                    RootVC.popToRootViewController(animated: true)
-                } else {
-                    
-                    showMessageView(message: "Log Out Failed", valid: false, completion: nil)
-                }
-            })
-        }
-        
-        alert.addAction(cancelAction)
-        alert.addAction(logoutAction)
-        
-        self.present(alert, animated: true, completion: nil)
-    }
+        addressLabel.text = address
 
+    }
+    
+    func reloadTableView() {
+        self.tableView.reloadData()
+    }
+    
+    
+    //MARK:- PREPARE FOR SEGUE
+    override func prepare(for segue: UIStoryboardSegue, sender: AnyObject?) {
+        
+        let editButon = sender as! IndexPathButton
+        let indexPath = editButon.indexPath
+        let note = notes[indexPath!.row]
+        
+        let composeVc = segue.destinationViewController as! ComposeViewController
+        
+        //If editing a Note, set the complete note details
+        composeVc.editingNote   = true
+        composeVc.noteToEdit    = note
+        composeVc.locality      = note.locationString
+        composeVc.location      = note.location
+    }
+    
+    @IBAction func dismiss() {
+        self.dismiss(animated: true, completion: nil)
+    }
+    
 }
 
 
-//--------------------------------------------------------------------------------
-//MARK:- UITalbleView Delegate
-//--------------------------------------------------------------------------------
-extension UserProfileViewController:  UITableViewDelegate, UITableViewDataSource {
+extension NotesListViewController:  UITableViewDelegate, UITableViewDataSource {
     
     func numberOfSections(in tableView: UITableView) -> Int {
         
@@ -180,7 +151,7 @@ extension UserProfileViewController:  UITableViewDelegate, UITableViewDataSource
 //--------------------------------------------------------------------------------
 //MARK:- NoteDetailsView Delegate
 //--------------------------------------------------------------------------------
-extension UserProfileViewController: NoteDetailsViewDelegate {
+extension NotesListViewController: NoteDetailsViewDelegate {
     
     
     //MARK: Show Note Options
@@ -262,7 +233,7 @@ extension UserProfileViewController: NoteDetailsViewDelegate {
         
         //Remove deleted note from notes array
         notes = notes.filter({ (note) -> Bool in
-         
+            
             if note.objectId == deletedNote.objectId {
                 return false
             }
@@ -276,8 +247,5 @@ extension UserProfileViewController: NoteDetailsViewDelegate {
         
         //Reload notes list
         tableView.reloadData()
-        
-        //Re-populize labels
-        populizeLabels()
     }
 }

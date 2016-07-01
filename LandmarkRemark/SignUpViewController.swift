@@ -9,7 +9,7 @@
 import UIKit
 import Parse
 
-class SignUpViewController: UIViewController, UITextFieldDelegate {
+class SignUpViewController: UIViewController, SignUpViewModelDelegate {
     
     //MARK:- OUTLETS
     @IBOutlet weak var titleLabel: UILabel!
@@ -28,20 +28,21 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
     var emailAddress: String!
     var password: String!
     var username: String!
-    var validUsername = Validity.Invalid
-    var validPassword = Validity.Invalid
     var tap: UITapGestureRecognizer!
     
+    var viewModel: SignUpViewModel!
     
-    //MARK:- METHODS
-    override func preferredStatusBarStyle() -> UIStatusBarStyle {
-        return UIStatusBarStyle.LightContent
-    }
+    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller life cycle methods
+    //------------------------------------------------------------------------------------------------
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        self.emailInput.textColor = UIColor.whiteColor().colorWithAlphaComponent(0.75)
+        viewModel = SignUpViewModel(delegate: self)
+        
+        self.emailInput.textColor = UIColor.white().withAlphaComponent(0.75)
         
         //Start with sign up button disabled
         signUpButton.disabled()
@@ -51,8 +52,8 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
         passwordInput.delegate = self
         
         //Validate inputs as editing changes
-        self.usernameInput.addTarget(self, action: #selector(self.textFieldDidChange), forControlEvents: UIControlEvents.EditingChanged)
-        self.passwordInput.addTarget(self, action: #selector(self.textFieldDidChange), forControlEvents: UIControlEvents.EditingChanged)
+        usernameInput.addTarget(self, action: #selector(textFieldDidChange(textField: )), for: UIControlEvents.editingChanged)
+        passwordInput.addTarget(self, action: #selector(textFieldDidChange(textField: )), for: UIControlEvents.editingChanged)
         
         
         //Tap to dismiss keyboard
@@ -64,29 +65,49 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
         populizeStrings()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
+        //Set Self as Active View Controller
+        ActiveViewController = self
+        
         //Add keyboard notification observers
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillHide(_:)), name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillChange(_:)), name: UIKeyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillHide(notification:)), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillChange(notification:)), name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
         
         //Populise email input
         emailInput.text = emailAddress
         
         //Email cannot be changed on this view
-        emailInput.enabled = false
+        emailInput.isEnabled = false
     }
     
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         self.usernameInput.becomeFirstResponder()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        clearView()
+        
+        //Remove keyboard notification observers
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
+    }
     
-    //MARK:- PREPARE VIEW
+    
+    
+    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller styling methods
+    //------------------------------------------------------------------------------------------------
+    override func preferredStatusBarStyle() -> UIStatusBarStyle {
+        return UIStatusBarStyle.lightContent
+    }
     func setViewBackground() {
-        self.view.layer.insertSublayer(purpleGradient(), atIndex: 0)
+        self.view.layer.insertSublayer(purpleGradient(), at: 0)
     }
     
     func populizeStrings() {
@@ -94,11 +115,112 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
         self.emailInput.placeholder = NSLocalizedString("EMAIL_ADDRESS", comment: "Email Address")
         self.passwordInput.placeholder = NSLocalizedString("SELECT_PASSWORD", comment: "Select Password")
         self.usernameInput.placeholder = NSLocalizedString("SELECT_USERNAME", comment: "Select Username")
-        self.signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Sign Up"), forState: .Normal)
+        self.signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Sign Up"), for: UIControlState.application)
     }
     
     
-    //MARK:- TEXT FIELD DELEGATE
+    
+    
+    
+    // -------------------------------
+    // MARK :- user Actions on the UI
+    // -------------------------------
+    
+    @IBAction func signUp(sender: LargeWhiteButton) {
+        self.viewModel.email    = emailInput.text!
+        self.viewModel.username = usernameInput.text!
+        self.viewModel.password = passwordInput.text!
+        self.viewModel.signUp()
+    }
+    
+    @IBAction func dismissVC() {
+        dismissKeyboard()
+        let _ = navigationController?.popViewController(animated: true)
+    }
+    
+    
+    
+    // -------------------------------------------------------------------------------------------------------
+    // MARK :- SigUpViewModelDelegate method implementation, called by the view-model to notify anything
+    // -------------------------------------------------------------------------------------------------------
+    
+    func signupSuccessful() {
+        //Go To Home View
+        RootVC.pushViewController(MainTBC, animated: true)
+    }
+    
+    func invalidUsername() {
+        usernameInput.invalid()
+        usernameInput.becomeFirstResponder()
+    }
+    
+    func validUsername() {
+        usernameInput.valid()
+    }
+    
+    func invalidPassword() {
+        passwordInput.invalid()
+        passwordInput.becomeFirstResponder()
+    }
+    
+    func showUsernameProcessing() {
+        usernameSpinner.startAnimating()
+    }
+    
+    func hideUsernameProcessing() {
+        usernameSpinner.stopAnimating()
+    }
+    
+    func showProcessing() {
+        
+        //Cannot dismiss view controller when processing
+        self.closeButton.isHidden = true
+        
+        //Show spinner on top of login button
+        signupSpinner.startAnimating()
+        
+        //Hides Log In text and leaves the border intact for a better look
+        signUpButton.setTitle("", for: UIControlState.application)
+        signUpButton.disabled()
+    }
+    
+    func hideProcessing() {
+        dismissKeyboard()
+        
+        //Stop/Hide spinner
+        signupSpinner.stopAnimating()
+        
+        self.closeButton.isHidden = false
+        
+        //Re-populate Sign Up text
+        signUpButton.enabled()
+        signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Log In"), for: UIControlState.application)
+    }
+    
+    
+    
+    
+    
+    
+    // ------------------------------------
+    // MARK :- Helper methods
+    // ------------------------------------
+    func clearView() {
+        //Clear view on Log In
+        usernameInput.text = ""
+        passwordInput.text = ""
+        signUpButton.disabled()
+        closeButton.isHidden = false
+    }
+}
+
+
+// ------------------------------------
+// MARK :- UITextFieldDelegate methods
+// ------------------------------------
+
+extension SignUpViewController: UITextFieldDelegate {
+    
     func textFieldDidChange(textField: UITextField) {
         
         //If either input is empty, disable sign up button
@@ -111,168 +233,52 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
         switch textField {
         case usernameInput:
             username = textField.text!
-        
+            
         default:
             let password = passwordInput.text!
             if password.characters.count >= MIN_PASSWORD_LENGTH {
                 self.password = password
-                validPassword = .Valid
+                self.viewModel.validPassword = .Valid
             }
         }
     }
     
-    func textFieldShouldReturn(textField: UITextField) -> Bool {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         switch textField {
         case usernameInput:
             self.passwordInput.becomeFirstResponder()
-        
+            
         default:
-            signUp(signUpButton)
+            self.signUp(sender: signUpButton)
             break;
         }
         
         return true
     }
     
-    func validateUsername() {
-        //Username should meet set criteria
-        if username.characters.count >= MIN_USERNAME_LENGTH {
-            
-            //Check username availability
-            usernameSpinner.startAnimating()
-            
-            checkAvailabilityInUserClass(inField: "username", forValue: username, completion: { (available) in
-                
-                if available {
-                    //Username available
-                    self.usernameInput.valid()
-                    self.validUsername = .Valid
-                    
-                } else {
-                    //Username unavailable
-                    showMessageView("'\(self.username)' \(NSLocalizedString("IS_NOT_AVAILABLE", comment: "is not available")).", valid: false, completion: nil)
-                    self.usernameInput.invalid()
-                    self.validUsername = .Invalid
-                }
-                
-                self.usernameSpinner.stopAnimating()
-            })
-        
-        } else {
-            //Username is too short
-            showMessageView(NSLocalizedString("USERNAME_TOO_SHORT", comment: "Username too short."), valid: false, completion: nil)
-            usernameInput.invalid()
-            validUsername = .Invalid
-        }
-    }
-    
-    func textFieldShouldEndEditing(textField: UITextField) -> Bool {
+    func textFieldShouldEndEditing(_ textField: UITextField) -> Bool {
         if textField == usernameInput && textField.text?.characters.count > 0 {
-            validateUsername()
+            self.viewModel.username = textField.text!
+            self.viewModel.validateUsername()
         }
         return true
     }
     
-    func textFieldDidBeginEditing(textField: UITextField) {
+    func textFieldDidBeginEditing(_ textField: UITextField) {
         view.addGestureRecognizer(tap)
     }
     
-    func textFieldDidEndEditing(textField: UITextField) {
+    func textFieldDidEndEditing(_ textField: UITextField) {
         view.removeGestureRecognizer(tap)
     }
     
     
-    @IBAction func signUp(sender: UIButton) {
-        
-        //Run a final validation before sign up
-        if validUsername == .Invalid {
-            //Username is Invalid
-            showMessageView(NSLocalizedString("ENTER_VALID_USERNAME", comment: "Enter valid username"), valid: false, completion: { (success) in
-                self.usernameInput.becomeFirstResponder()
-            })
-            
-        } else if validPassword == .Invalid {
-            //Password is Invalid
-            showMessageView(NSLocalizedString("PASSWORD_TOO_SHORT", comment: "Password Too Short"), valid: false, completion: { (success) in
-                self.passwordInput.becomeFirstResponder()
-            })
-            
-        } else {
-            //Process Sign Up
-            dismissKeyboard()
-            showProcessing()
-            
-            //Create a new user object for current user
-            CurrentUser = UserObject()
-            
-            //Set user credentials
-            CurrentUser!.email = self.emailInput.text!
-            CurrentUser!.username = self.usernameInput.text!
-            CurrentUser!.password = self.passwordInput.text!
-            
-            //Sign Up user
-            CurrentUser!.signUpAsNewUser { (success) in
-                if success {
-                    //Sign up successfull
-                    showMessageView(NSLocalizedString("SUCCESSFUL_SIGNUP", comment: "Successful Signup"), valid: true, completion: nil)
-                    
-                    //Add user to current installation
-                    updateParseInstallation()
-                    
-                    //Go To Home View
-                    RootVC.pushViewController(MainTBC, animated: true)
-                    
-                } else {
-                    //Sign up failed
-                    showMessageView(NSLocalizedString("FAILED_SIGNUP", comment: "Failed Signup"), valid: false, completion: nil)
-                }
-                
-                self.hideProcessing()
-            }
-        }
-    }
     
-    //MARK:- LOGIN PROCESSING STATES
-    func showProcessing() {
-        
-        //Cannot dismiss view controller when processing
-        self.closeButton.hidden = true
-        
-        //Show spinner on top of login button
-        signupSpinner.startAnimating()
-        
-        //Hides Log In text and leaves the border intact for a better look
-        signUpButton.setTitle("", forState: .Normal)
-        signUpButton.disabled()
-    }
-    
-    func hideProcessing() {
-        dismissKeyboard()
-        
-        //Stop/Hide spinner
-        signupSpinner.stopAnimating()
-        
-        self.closeButton.hidden = false
-        
-        //Re-populate Sign Up text
-        signUpButton.enabled()
-        signUpButton.setTitle(NSLocalizedString("SIGN_UP", comment: "Log In"), forState: .Normal)
-    }
-    
-    func clearView() {
-        //Clear view on Log In
-        usernameInput.text = ""
-        passwordInput.text = ""
-        signUpButton.disabled()
-        closeButton.hidden = false
-    }
-    
-    //MARK:- KEYBOARD NOTIFICATIONS
     func keyboardWillChange(notification: NSNotification) {
-        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.CGRectValue() {
+        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue() {
             
             let keyboardOrigin = keyboardRect.origin.y
-            let buttonMaxY = CGRectGetMaxY(signUpButton.frame)
+            let buttonMaxY = signUpButton.frame.maxY
             
             // If keyboard overlaps the button
             if keyboardOrigin < buttonMaxY {
@@ -289,32 +295,4 @@ class SignUpViewController: UIViewController, UITextFieldDelegate {
     func dismissKeyboard() {
         view.endEditing(true)
     }
-    
-    @IBAction func dismissVC() {
-        dismissKeyboard()
-        navigationController?.popViewControllerAnimated(true)
-    }
-    
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        
-        clearView()
-        
-        //Remove keyboard notification observers
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillChangeFrameNotification, object: nil)
-        
-    }
-    
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
-
 }

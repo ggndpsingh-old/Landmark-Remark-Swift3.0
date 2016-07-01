@@ -8,7 +8,7 @@
 
 import UIKit
 
-class VerifyEmailViewController: UIViewController, UITextFieldDelegate {
+class VerifyEmailViewController: UIViewController, VerifyEmailViewModelDelegate {
     
     //MARK:- OUTLETS
     @IBOutlet weak var signUpTitle: UILabel!
@@ -17,16 +17,24 @@ class VerifyEmailViewController: UIViewController, UITextFieldDelegate {
     @IBOutlet weak var spinner: UIActivityIndicatorView!
     
     //MARK:- VARIABLES
+    
+    var viewModel: VerifyEmailViewModel!
+    
     var email: String!
     var tap: UITapGestureRecognizer!
     
-    //MARK:- METHODS
-    override func preferredStatusBarStyle() -> UIStatusBarStyle {
-        return UIStatusBarStyle.LightContent
-    }
+    
+    
+    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller life cycle methods
+    //------------------------------------------------------------------------------------------------
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        viewModel = VerifyEmailViewModel(delegate: self)
         
         //Start with Next Button disabled
         nextButton.disabled()
@@ -40,43 +48,155 @@ class VerifyEmailViewController: UIViewController, UITextFieldDelegate {
         populizeStrings()
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
+        //Set Self as Active View Controller
+        ActiveViewController = self
+        
         self.emailInput.delegate = self
         
         //Add Keyboard Notification Observers
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillHide(_:)), name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: #selector(self.keyboardWillChange(_:)), name: UIKeyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillHide(notification:)), name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().addObserver(self, selector: #selector(self.keyboardWillChange(notification:)), name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
         
-        emailInput.addTarget(self, action: #selector(textFieldDidChange(_:)), forControlEvents: .EditingChanged)
+        emailInput.addTarget(self, action: #selector(self.textFieldDidChange(textField:)), for: .editingChanged)
     }
     
-    override func viewDidAppear(animated: Bool) {
+    override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         self.emailInput.becomeFirstResponder()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        clearView()
+        
+        //Remove keyboard notification observers
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillHide, object: nil)
+        NotificationCenter.default().removeObserver(self, name: NSNotification.Name.UIKeyboardWillChangeFrame, object: nil)
+        
+    }
     
-    //MARK:- PREPARE VIEW
+    
+    
+    
+    //------------------------------------------------------------------------------------------------
+    // MARK: - View controller styling methods
+    //------------------------------------------------------------------------------------------------
+    
+    override func preferredStatusBarStyle() -> UIStatusBarStyle {
+        return UIStatusBarStyle.lightContent
+    }
+    
     func setViewBackground() {
         //Set the gradient for background
-        self.view.layer.insertSublayer(purpleGradient(), atIndex: 0)
+        self.view.layer.insertSublayer(purpleGradient(), at: 0)
     }
     
     func populizeStrings() {
         self.signUpTitle.text = NSLocalizedString("SIGN_UP", comment: "Sign Up")
         self.emailInput.placeholder = NSLocalizedString("EMAIL_ADDRESS", comment: "Email Address")
-        self.nextButton.setTitle(NSLocalizedString("NEXT", comment: "Next"), forState: .Normal)
+        self.nextButton.setTitle(NSLocalizedString("NEXT", comment: "Next"), for: UIControlState.application)
+    }
+    
+    
+    
+    // -------------------------------
+    // MARK :- user Actions on the UI
+    // -------------------------------
+    @IBAction func verifyEmail(sender: UIButton) {
+        
+        viewModel.email = self.emailInput.text!
+        viewModel.verifyEmail()
         
     }
     
+    //Dismiss View Controller
+    @IBAction func dismissVC() {
+        dismissKeyboard()
+        let _ = navigationController?.popViewController(animated: true)
+    }
     
-    //MARK:- TEXT FIELD DELEGATE
-    func textFieldDidBeginEditing(textField: UITextField) {
+    
+    
+    
+    // -------------------------------
+    // MARK :- Segue Methods
+    // -------------------------------
+    override func prepare(for segue: UIStoryboardSegue, sender: AnyObject?) {
+        let signUpVC = segue.destinationViewController as! SignUpViewController
+        signUpVC.emailAddress = email
+    }
+    
+    
+    
+    
+    // -------------------------------------------------------------------------------------------------------
+    // MARK :- VerifyEmailViewModelDelegate method implementation, called by the view-model to notify anything
+    // -------------------------------------------------------------------------------------------------------
+    func continueSignup(withEmail email: String) {
+        
+        self.email = email
+        self.performSegue(withIdentifier: "goToSignUp", sender: self)
+    }
+    
+    func invalidEmail() {
+        emailInput.invalid()
+        emailInput.becomeFirstResponder()
+    }
+    
+    func showProcessing() {
+        dismissKeyboard()
+        
+        //Show spinner on top of login button
+        spinner.startAnimating()
+        nextButton.disabled()
+        
+        //Hides Log In text and leaves the border intact for a better look
+        nextButton.setTitle("", for: UIControlState.application)
+    }
+    
+    func hideProcessing() {
+        //Stop/Hide spinner
+        spinner.stopAnimating()
+        nextButton.enabled()
+        
+        //Re-populate Log In text
+        nextButton.setTitle(NSLocalizedString("NEXT", comment: "Log In"), for: UIControlState.application)
+    }
+    
+    
+    
+    
+    // ------------------------------------
+    // MARK :- Helper methods
+    // ------------------------------------
+    
+    func clearView() {
+        //Clear view on Log In
+        view.endEditing(true)
+        emailInput.text = ""
+        nextButton.disabled()
+    }
+}
+
+
+
+
+
+// ------------------------------------
+// MARK :- UITextFieldDelegate methods
+// ------------------------------------
+
+extension VerifyEmailViewController: UITextFieldDelegate {
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
         view.addGestureRecognizer(tap)
     }
     
-    func textFieldDidEndEditing(textField: UITextField) {
+    func textFieldDidEndEditing(_ textField: UITextField) {
         view.removeGestureRecognizer(tap)
     }
     
@@ -84,19 +204,19 @@ class VerifyEmailViewController: UIViewController, UITextFieldDelegate {
         textField.text == "" ? nextButton.disabled() : nextButton.enabled()
     }
     
-    func textFieldShouldReturn(textField: UITextField) -> Bool {
-        self.verifyEmail(nextButton)
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        self.verifyEmail(sender: nextButton)
         view.endEditing(true)
         return true
     }
     
     
-    //MARK:-  KEYBOARD NOTIFICATIONS
+    //MARK:  KEYBOARD NOTIFICATIONS
     func keyboardWillChange(notification: NSNotification) {
-        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.CGRectValue() {
+        if let keyboardRect = (notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue() {
             
             let keyboardOrigin = keyboardRect.origin.y
-            let buttonMaxY = CGRectGetMaxY(nextButton.frame)
+            let buttonMaxY = nextButton.frame.maxY
             
             // If keyboard overlaps the button
             if keyboardOrigin < buttonMaxY {
@@ -113,90 +233,4 @@ class VerifyEmailViewController: UIViewController, UITextFieldDelegate {
     func dismissKeyboard() {
         view.endEditing(true)
     }
-    
-    
-    //MARK:- VERIFY EMAIL
-    @IBAction func verifyEmail(sender: UIButton) {
-        
-        let email = self.emailInput.text!
-        //Validate email
-        if isValidEmail(email) {
-            
-            //Valid Email
-            self.email = email
-            showProcessing()
-            
-            //Check if email already exists in database
-            checkAvailabilityInUserClass(inField: "email", forValue: email, completion: { (available) in
-                if available {
-                    //Can use email for Sign Up, continue Sign Up
-                    self.performSegueWithIdentifier("goToSignUp", sender: self)
-                    
-                } else {
-                    //Another account is using the given email
-                    showMessageView("\(NSLocalizedString("ANOTHER_ACCOUNT_IS_USING", comment: "Another account is using")) '\(email)'", valid: false, completion: { (success) in
-                        self.emailInput.invalid()
-                        self.emailInput.becomeFirstResponder()
-                    })
-                }
-                
-                self.hideProcessing()
-            })
-        
-        } else {
-            //Invalid Email
-            showMessageView(NSLocalizedString("INVALID_EMAIL", comment: "Invalid Email"), valid: false, completion: nil)
-        }
-    }
-    
-    //MARK:- LOGIN PROCESSING STATES
-    func showProcessing() {
-        dismissKeyboard()
-        
-        //Show spinner on top of login button
-        spinner.startAnimating()
-        nextButton.disabled()
-        
-        //Hides Log In text and leaves the border intact for a better look
-        nextButton.setTitle("", forState: .Normal)
-    }
-    
-    func hideProcessing() {
-        //Stop/Hide spinner
-        spinner.stopAnimating()
-        nextButton.enabled()
-        
-        //Re-populate Log In text
-        nextButton.setTitle(NSLocalizedString("NEXT", comment: "Log In"), forState: .Normal)
-    }
-    
-    func clearView() {
-        //Clear view on Log In
-        emailInput.text = ""
-        nextButton.disabled()
-    }
-    
-    
-    //MARK:- PREPARE FOR SEGUE
-    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
-        let signUpVC = segue.destinationViewController as! SignUpViewController
-        signUpVC.emailAddress = email
-    }
-    
-    
-    //MARK:- DISMISS
-    @IBAction func dismissVC() {
-        dismissKeyboard()
-        navigationController?.popViewControllerAnimated(true)
-    }
-    
-    override func viewWillDisappear(animated: Bool) {
-        super.viewWillDisappear(animated)
-        
-        //Remove keyboard notification observers
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillHideNotification, object: nil)
-        NSNotificationCenter.defaultCenter().removeObserver(self, name: UIKeyboardWillChangeFrameNotification, object: nil)
-        
-    }
-
 }

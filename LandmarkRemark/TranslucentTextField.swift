@@ -13,8 +13,8 @@ class TranslucentTextField: UITextField {
     
     override func awakeFromNib() {
         //Set Colors
-        self.backgroundColor = UIColor.whiteColor().colorWithAlphaComponent(0.2)
-        self.attributedPlaceholder = NSAttributedString(string: self.placeholder!, attributes: [NSForegroundColorAttributeName: UIColor.whiteColor().colorWithAlphaComponent(0.5)])
+        self.backgroundColor = UIColor.white().withAlphaComponent(0.2)
+        self.attributedPlaceholder = AttributedString(string: self.placeholder!, attributes: [NSForegroundColorAttributeName: UIColor.white().withAlphaComponent(0.5)])
         
         //Set Corner Radius
         self.layer.cornerRadius = 5
@@ -25,20 +25,20 @@ class TranslucentTextField: UITextField {
         super.init(coder: aDecoder)
     }
     
-    override func textRectForBounds(bounds: CGRect) -> CGRect {
+    override func textRect(forBounds bounds: CGRect) -> CGRect {
         return UIEdgeInsetsInsetRect(bounds, padding)
     }
     
-    override func placeholderRectForBounds(bounds: CGRect) -> CGRect {
+    override func placeholderRect(forBounds bounds: CGRect) -> CGRect {
         return UIEdgeInsetsInsetRect(bounds, padding)
     }
     
-    override func editingRectForBounds(bounds: CGRect) -> CGRect {
+    override func editingRect(forBounds bounds: CGRect) -> CGRect {
         return UIEdgeInsetsInsetRect(bounds, padding)
     }
     
     func invalid() {
-        self.layer.borderColor = UIColor.errorRed().colorWithAlphaComponent(0.75).CGColor
+        self.layer.borderColor = UIColor.errorRed().withAlphaComponent(0.75).cgColor
         self.layer.borderWidth = 1
     }
     

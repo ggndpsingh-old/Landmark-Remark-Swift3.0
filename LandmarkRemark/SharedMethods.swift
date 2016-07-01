@@ -11,33 +11,11 @@ import Parse
 import CoreLocation
 import MapKit
 
-//Method to check availablity in User class.
-//Common usage: Email & Username
-func checkAvailabilityInUserClass(inField field: String, forValue value: String, completion: (available: Bool) -> Void ) {
-    let query = PFUser.query()!
-    query.whereKey(field, equalTo: value)
-    query.getFirstObjectInBackgroundWithBlock { (object, error) in
-        if let _ = object {
-            completion(available: false)
-        
-        } else {
-            completion(available: true)
-        }
-    }
-}
-
-//Add current user to Parse Installation on login and sign up.
-func updateParseInstallation() {
-    let installaion = PFInstallation.currentInstallation()
-    installaion.setValue(CurrentUser!.parseUser, forKey: "user")
-    installaion.saveInBackground()
-}
-
 
 //Validate Email Address
 func isValidEmail(candidate: String) -> Bool {
     let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}"
-    return NSPredicate(format: "SELF MATCHES %@", emailRegex).evaluateWithObject(candidate)
+    return Predicate(format: "SELF MATCHES %@", emailRegex).evaluate(with: candidate)
 }
 
 func convertMetersToKilometers(distance: CLLocationDistance) -> CLLocationDistance {
@@ -45,15 +23,13 @@ func convertMetersToKilometers(distance: CLLocationDistance) -> CLLocationDistan
 }
 
 
-
-//Chech if an annotation exsits at given coordinates
-func annotationExists(atCoordinates coordinates: CLLocationCoordinate2D,  inMapView mapView: MKMapView) -> Bool {
+//Generate string for show all notes button
+func generateString(forNotesCount count: Int) -> String {
     
-    for annotation in mapView.annotations {
-        if annotation.coordinate.latitude == coordinates.latitude && annotation.coordinate.longitude == coordinates.longitude {
-            return true
-        }
-    }
+    let prefix  = NSLocalizedString("SHOW_ALL", comment: "Show all")
+    let notes   = NSLocalizedString("NOTES", comment: "Notes")
+    let postfix = NSLocalizedString("AT_THIS_LOCATION", comment: "at this location")
     
-    return false
+    return "\(prefix) \(count) \(notes) \(postfix)"
+    
 }

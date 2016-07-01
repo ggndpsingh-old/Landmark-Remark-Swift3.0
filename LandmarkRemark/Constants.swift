@@ -13,7 +13,7 @@ import CoreLocation
 let MIN_USERNAME_LENGTH: Int = 6
 let MIN_PASSWORD_LENGTH: Int = 8
 let MIN_KEYBOARD_DISTANCE: CGFloat = 10
-let MESSAGE_DELAY: NSTimeInterval = 2.5
+let MESSAGE_DELAY: Double = 2.5
 
 let MAX_NOTE_LENGTH = 200
 

@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 import MapKit
 
-//MARK:- Exrentions
+//MARK:- Extentions
 extension UIColor {
     class func buttonBlue() -> UIColor {
         return UIColor(red: 42/255,  green: 163/255, blue: 239/255,  alpha: 1)
@@ -37,10 +37,12 @@ extension UIColor {
     }
 }
 
+
+
 //Background Gradient
 func purpleGradient() -> CAGradientLayer {
     let purpleGradient: CAGradientLayer = CAGradientLayer()
-    purpleGradient.colors = [UIColor.gradientPurpleOne().CGColor, UIColor.gradientPurpleTwo().CGColor]
+    purpleGradient.colors = [UIColor.gradientPurpleOne().cgColor, UIColor.gradientPurpleTwo().cgColor]
     purpleGradient.locations = [0.0 , 1.0]
     purpleGradient.startPoint = CGPoint(x: 0.0, y: 0.0)
     purpleGradient.endPoint = CGPoint(x: 1.0, y: 0.0)
@@ -49,29 +51,49 @@ func purpleGradient() -> CAGradientLayer {
 }
 
 
+
+
 //MARK:- String
 extension String {
     func trunc(length: Int) -> String {
         if self.characters.count > length {
-            return self.substringToIndex(self.startIndex.advancedBy(length)) + ("...")
+            return self.substring(to: self.index(self.startIndex, offsetBy: length)) + ("...")
         } else {
             return self
         }
     }
+    
+    /**
+     To trim while spaces from left and right of a string
+     */
+    func trim() -> String
+    {
+        return self.trimmingCharacters(in: NSCharacterSet.whitespaces())
+    }
+    
+    /**
+     To condense while spaces wihtin the string
+     */
+    func condenseWhitespace() -> String {
+        let components = self.components(separatedBy: NSCharacterSet.whitespaces())
+        let filtered = components.filter({!$0.isEmpty})
+        return filtered.joined(separator: " ")
+    }
+    
 }
 
 //MARK:- NSDate
 extension NSDate {
     func longFormat() -> String {
-        let dateFormatter = NSDateFormatter()
+        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd MMMM, YYYY hh:mm a"
-        return dateFormatter.stringFromDate(self)
+        return dateFormatter.string(from: self as Date)
     }
     
     func dateOnlyFormat() -> String {
-        let dateFormatter = NSDateFormatter()
+        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "dd MMMM, YYYY"
-        return dateFormatter.stringFromDate(self)
+        return dateFormatter.string(from: self as Date)
     }
 }
 
@@ -83,8 +105,18 @@ extension NSDate {
     This is used to get details of a note when an annotation is tapped on.
 */
 
-class NoteAnnotation: MKPointAnnotation {
+public class NoteAnnotation: MKPointAnnotation {
     var note: NoteObject!
+}
+
+
+/*
+ Create a custom class for UIButton with an IndexPath variable.
+ This is used to get the IndexPath of the cell in which the button is tapped.
+ */
+
+class IndexPathButton: UIButton {
+    var indexPath: NSIndexPath!
 }
 
 

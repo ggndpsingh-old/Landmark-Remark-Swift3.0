@@ -14,16 +14,16 @@ class LargeWhiteButton: UIButton {
         self.layer.cornerRadius = 5
         self.clipsToBounds = true
         self.layer.borderWidth = 1
-        self.layer.borderColor = UIColor.whiteColor().colorWithAlphaComponent(0.5).CGColor
+        self.layer.borderColor = UIColor.white().withAlphaComponent(0.5).cgColor
     }
     
     func disabled() {
-        enabled = false
+        isEnabled = false
         alpha = 0.5
     }
     
     func enabled() {
-        enabled = true
+        isEnabled = true
         alpha = 1
     }
 

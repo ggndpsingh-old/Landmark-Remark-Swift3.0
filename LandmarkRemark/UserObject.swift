@@ -10,7 +10,7 @@ import Foundation
 import UIKit
 import Parse
 
-class UserObject : NSObject, NSCoding {
+class UserObject : NSObject {
     
     //Set user properties
     
@@ -38,13 +38,13 @@ class UserObject : NSObject, NSCoding {
         //Set user values
         self.parseUser  = pfUser
         
-        self.objectId   = pfUser.valueForKey("objectId") as! String
-        self.username   = pfUser.valueForKey("username") as! String
-        self.email      = pfUser.valueForKey("email") as! String
-        self.notesCount = pfUser.valueForKey("notesCount") as! Int
+        self.objectId   = pfUser.value(forKey:"objectId") as! String
+        self.username   = pfUser.value(forKey:"username") as! String
+        self.email      = pfUser.value(forKey:"email") as! String
+        self.notesCount = pfUser.value(forKey:"notesCount") as! Int
         
-        self.createdAt = pfUser.valueForKey("createdAt") as! NSDate
-        self.updatedAt = pfUser.valueForKey("updatedAt") as! NSDate
+        self.createdAt = pfUser.value(forKey:"createdAt") as! NSDate
+        self.updatedAt = pfUser.value(forKey:"updatedAt") as! NSDate
     }
     
     
@@ -61,7 +61,7 @@ class UserObject : NSObject, NSCoding {
         parseUser.setValue(0, forKey: "notesCount")
         
         //Sign Up User
-        parseUser.signUpInBackgroundWithBlock { (success, error) in
+        parseUser.signUpInBackground { (success, error) in
             if success {
                 completion!(success: true)
                 self.objectId = self.parseUser.objectId!
@@ -87,15 +87,9 @@ class UserObject : NSObject, NSCoding {
     
     //Endcoding & Decoding to save User Object locally
     required init(coder aDecoder: NSCoder) {
-        self.objectId   = aDecoder.decodeObjectForKey("objectId") as! String
-        self.username   = aDecoder.decodeObjectForKey("username") as! String
-        self.email      = aDecoder.decodeObjectForKey("email") as! String
     }
     
     func encodeWithCoder(aCoder: NSCoder) {
-        aCoder.encodeObject(self.objectId,  forKey: "objectId")
-        aCoder.encodeObject(self.username,  forKey: "username")
-        aCoder.encodeObject(self.email,     forKey: "email")
     }
     
 }

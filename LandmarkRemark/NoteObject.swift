@@ -10,7 +10,7 @@ import Foundation
 import Parse
 import CoreLocation
 
-class NoteObject: NSObject, NSCoding {
+public class NoteObject: NSObject {
     
     //Set note variables
     
@@ -23,13 +23,16 @@ class NoteObject: NSObject, NSCoding {
     var searchString    : String!
     var detailsString   : String!
     
+    var likes           : Int!
+    var likedBy         : [String]!
+    
     var createdAt   : NSDate!
     var updatedAt   : NSDate!
     
     
     //Create note search string
     func createSearchString() -> String {
-        return "\(user.username) - \(locationString) - \(note)".lowercaseString
+        return "\(user.username!) - \(locationString!) - \(note!)".lowercased()
     }
     
     
@@ -47,19 +50,22 @@ class NoteObject: NSObject, NSCoding {
         self.objectId = pfObject.objectId!
         
         //Get valus for Parse Object
-        self.note           = pfObject.valueForKey("note") as! String
-        self.locationString = pfObject.valueForKey("locationString") as! String
-        self.searchString   = pfObject.valueForKey("searchString") as! String
+        self.note           = pfObject.value(forKey: "note") as! String
+        self.locationString = pfObject.value(forKey:"locationString") as! String
+        self.searchString   = pfObject.value(forKey:"searchString") as! String
         
-        self.createdAt      = pfObject.valueForKey("createdAt") as! NSDate
-        self.updatedAt      = pfObject.valueForKey("updatedAt") as! NSDate
+        self.createdAt      = pfObject.value(forKey:"createdAt") as! NSDate
+        self.updatedAt      = pfObject.value(forKey:"updatedAt") as! NSDate
+        
+        self.likes          = pfObject.value(forKey: "likes") as! Int
+        self.likedBy        = pfObject.value(forKey: "likedBy") as! [String]
         
         //Conver Parse User to User Object
-        let user = pfObject.valueForKey("user") as! PFUser
+        let user = pfObject.value(forKey:"user") as! PFUser
         self.user = UserObject(withParseUser: user)
         
         //Conver Parse GeoPoint to CLLocation
-        let geopoint = pfObject.valueForKey("location") as! PFGeoPoint
+        let geopoint = pfObject.value(forKey:"location") as! PFGeoPoint
         self.location = CLLocation(latitude: geopoint.latitude, longitude: geopoint.longitude)
         
         //Create details string
@@ -67,8 +73,8 @@ class NoteObject: NSObject, NSCoding {
     }
     
     
-    //Save a new not to Parse with completion block
-    func saveAsNewNote(completion: (success: Bool) -> Void) {
+    //Save a new note to Parse with completion block
+    func saveAsNewNote(completion: (success: Bool, error: NSError?) -> Void) {
         
         //Set parseObject as a new Parse Object of Note class
         parseObject = PFObject(className: "Note")
@@ -79,33 +85,49 @@ class NoteObject: NSObject, NSCoding {
         parseObject.setValue(self.createSearchString(), forKey: "searchString")
         parseObject.setValue(CurrentUser!.parseUser,    forKey: "user")
         
+        parseObject.setValue(0,                         forKey: "likes")
+        parseObject.setValue([],                        forKey: "likedBy")
+        
         //Convert note loation to Parse GeoPoint
         let geoPoint = PFGeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
         parseObject.setValue(geoPoint, forKey: "location")
         
         //Save parse object
-        parseObject.saveInBackgroundWithBlock { (success, error) in
+        parseObject.saveInBackground { (success, error) in
             if success {
                 self.objectId = self.parseObject.objectId!
-                completion(success: true)
+                completion(success: true, error: error)
             
             } else {
                 print(error?.description)
-                completion(success: false)
+                completion(success: false, error: error)
             }
         }
     }
     
     //Update varialbe properties on Note Object
     func updateParseObject() {
-        let searchString = createSearchString()
+        
         parseObject.setValue(note, forKey: "note")
-        parseObject.setValue(searchString, forKey: "searchString")
+        parseObject.setValue(createSearchString(), forKey: "searchString")
+        
+        parseObject.setValue(likes, forKey: "likes")
+        parseObject.setValue(likedBy, forKey: "likedBy")
+    }
+    
+    
+    func deleteNote(completion: (success: Bool, error: NSError?) -> Void) {
+        
+        parseObject.deleteInBackground { (success, error) in
+            completion(success: success, error: error)
+        }
+        
     }
     
     
     //Required NSOBject initializers
-    required init(coder aDecoder: NSCoder) {
+    required public init(coder aDecoder: NSCoder) {
+        
     }
     
     func encodeWithCoder(aCoder: NSCoder) {
